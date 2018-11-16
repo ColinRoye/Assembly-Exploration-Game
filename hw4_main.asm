@@ -100,7 +100,9 @@ la $a0, welcome_msg
 li $v0, 4
 syscall
 
-# fill in arguments
+la $a0, map_filename
+la $a1, map
+la $a2, player
 jal init_game
 
 # fill in arguments
@@ -133,7 +135,9 @@ syscall
 
 # if move == 0, call reveal_area()  Otherwise, exit the loop.
 
-j game_loop
+#j game_loop
+li $v0, 10
+syscall
 
 game_over:
 jal print_map
