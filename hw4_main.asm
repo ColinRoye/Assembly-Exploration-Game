@@ -24,6 +24,9 @@ you_failed_str: .asciiz "You have failed in your quest!\n"
 
 .text
 print_map:
+li $a0, '\n'
+li $v0, 11
+syscall
 la $t0, map  # the function does not need to take arguments
 lbu $t1, 0($t0)
 lbu $t2, 1($t0)
@@ -35,8 +38,40 @@ li $t4, 0
 sub_loop_print_map:
 beq $t4, $t2, sub_loop_print_map_over
 mul $a0, $t3, $t2
-addu $a0, $t0, $t4
+addu $a0, $a0, $t4
+addu $a0, $a0, $t0
 lbu $a0, 0($a0)
+li $v0, 11
+
+li $t9, 0x23
+beq $a0, $t9, print
+li $t9, '@'
+beq $a0, $t9, print
+li $t9, '.'
+beq $a0, $t9, print
+li $t9, '/'
+beq $a0, $t9, print
+li $t9, '>'
+beq $a0, $t9, print
+li $t9, '$'
+beq $a0, $t9, print
+li $t9, '*'
+beq $a0, $t9, print
+li $t9, 'm'
+beq $a0, $t9, print
+li $t9, 'B'
+beq $a0, $t9, print
+li $t9, '?'
+beq $a0, $t9, print
+b print_space
+print:
+syscall
+b print_over
+print_space:
+li $a0, ' '
+syscall
+print_over:
+
 li $v0, 11
 syscall
 addiu $t4, $t4, 1
@@ -46,9 +81,9 @@ addiu $t3, $t3, 1
 li $a0, '\n'
 li $v0, 11
 syscall
-li $a0, '\n'
-li $v0, 11
-syscall
+# #li $a0, '\n'
+# li $v0, 11
+# syscall
 b loop_print_map
 loop_print_map_over:
 
@@ -65,25 +100,25 @@ la $a0, pos_str
 li $v0, 4
 syscall
 lbu $a0, 0($t0)
-li $v0, 11
+li $v0, 1
 syscall
 li $a0, ','
 li $v0, 11
 syscall
 lbu $a0, 1($t0)
-li $v0, 11
+li $v0, 1
 syscall
 la $a0, health_str
 li $v0, 4
 syscall
 lbu $a0, 2($t0)
-li $v0, 11
+li $v0, 1
 syscall
 la $a0, coins_str
 li $v0, 4
 syscall
 lbu $a0, 3($t0)
-li $v0, 11
+li $v0, 1
 syscall
 li $a0, ']'
 li $v0, 11
@@ -135,7 +170,7 @@ syscall
 
 # if move == 0, call reveal_area()  Otherwise, exit the loop.
 
-#j game_loop
+j game_loop
 li $v0, 10
 syscall
 
