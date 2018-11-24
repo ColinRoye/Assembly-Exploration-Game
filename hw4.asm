@@ -423,8 +423,80 @@ jr $ra
 
 # Part VII
 monster_attacks:
-li $v0, -200
-li $v1, -200
+addiu $sp, $sp, -24
+sw $a0, 0($sp)
+sw $a1, 4($sp)
+sw $a2, 8($sp)
+sw $a3, 12($sp)
+sw $ra, 16($sp)
+sw $s0, 20($sp)
+
+lb $s0, 2($a2) #player health
+
+move $a1, $a2
+move $a2, $a3
+jal get_cell
+
+#load in players health
+mstr_m:
+li $t0, 'm'
+bne $t0, $v0, mstr_B
+
+lw $a0, 0($sp)
+lw $a1, 8($sp)
+lw $a2, 12($sp)
+li $a3, '$'
+jal set_cell
+#replace with "$"
+
+addiu $s0, $s0, -1
+
+
+b mstr_over
+mstr_B:
+li $t0, 'B'
+bne $t0, $v0, mstr_slash
+
+lw $a0, 0($sp)
+lw $a1, 8($sp)
+lw $a2, 12($sp)
+li $a3, '*'
+jal set_cell
+#replace with "*"
+addiu $s0, $s0, -2
+b mstr_over
+mstr_slash:
+li $t0, '/'
+bne $t0, $v0, mstr_over
+
+lw $a0, 0($sp)
+lw $a1, 8($sp)
+lw $a2, 12($sp)
+li $a3, '.'
+jal set_cell
+#replace with "."
+
+mstr_over:
+lw $a2, 8($sp)
+sb $s0, 2($a2) #player health
+
+
+player_check:
+#set and check players health
+bgtz $s0, player_check_over
+
+sw $a0, 0($sp)
+lb $a1, 0($a2) #row
+lb $a2, 1($a2) #col
+li $a3, 'X'
+
+player_check_over:
+
+lw $ra, 16($sp)
+lw $s0, 20($sp)
+addiu $sp, $sp, -24
+
+
 jr $ra
 
 
