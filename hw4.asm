@@ -99,7 +99,7 @@ beqz $t0, loop_init_map_over
 beq $t1, $t2, loop_init_map #read in new char
 
 move $t5, $t1
-xori $t5, $t5, 0x80
+#xori $t5, $t5, 0x80
 sb $t5, 0($t3)
 
 
@@ -189,7 +189,7 @@ lbu $t1, 0($a0)
 lbu $t2, 1($a0)
 
 bge $a1, $t1, not_valid
-bge $a2, $a2, not_valid
+bge $a2, $t2, not_valid
 
 li $v0, 0
 
@@ -207,20 +207,23 @@ addiu $sp, $sp, -8
 sw $ra, 0($sp)
 sw $s0, 4($sp)
 
-li $t0, 2
-mul $t1, $a1, $a2 #num cells in rows
-addu $t0, $t0, $t1 #add 2 to pass num row and num col
-addu $t0, $t0, $a2 #add col
-addu $s0, $t0, $a0 #add base
+lb $t1, 0($a0)
+lb $t2, 1($a0)
+addiu $a0, $a0, 2
+mul $t2, $t2, $a1 #row ind times num num_cols
+addu $t2, $t2, $a2
+addu $t2, $t2, $a0
+move $s0, $t2
 
+
+#args?
 jal is_valid_cell
 
 bltz $v0, get_err
 move $v0, $s0
+lbu $v0, 0($v0)
 
-lw $ra, 0($sp)
-lw $s0, 4($sp)
-addiu $sp, $sp, 8
+
 
 
 
@@ -229,6 +232,10 @@ b get_over
 get_err:
 li $v0, -1
 get_over:
+
+lw $ra, 0($sp)
+lw $s0, 4($sp)
+addiu $sp, $sp, 8
 
 jr $ra
 
@@ -242,16 +249,18 @@ sw $s0, 4($sp)
 sw $s1, 8($sp)
 
 move $s1, $a3
-li $t0, 2
-mul $t1, $a1, $a2 #num cells in rows
-addu $t0, $t0, $t1 #add 2 to pass num row and num col
-addu $t0, $t0, $a2 #add col
-addu $s0, $t0, $a0 #add base
+lb $t1, 0($a0)
+lb $t2, 1($a0)
+addiu $a0, $a0, 2
+mul $t2, $t2, $a1 #row ind times num num_cols
+addu $t2, $t2, $a2
+addu $t2, $t2, $a0
+move $s0, $t2
 
-
+#args?
 jal is_valid_cell
 
-bltz $v0, get_err
+bltz $v0, set_err
 li $v0, 0
 sb $s1, 0($s0)
 
@@ -263,7 +272,7 @@ addiu $sp, $sp, 12
 
 
 
-b get_over
+b set_over
 set_err:
 li $v0, -1
 set_over:
@@ -339,7 +348,10 @@ jr $ra
 
 # Part VI
 get_attack_target:
-
+addiu $sp, $sp, -12
+sw $ra, 0($sp)
+sw $s0, 4($sp)
+sw $s1, 8($sp)
 #load in the pos of the character
 #0,1 plr row,col
 lb $s0, 0($a1)
@@ -389,32 +401,37 @@ move $a1, $s0
 move $a2, $s1
 jal get_cell
 
-sw $ra, 4($sp)
+lw $ra, 4($sp)
 addiu $sp, $sp, 4
 
 rtm_case_m:
 li $t0, 'm'
 bne $t0, $v0, rtm_case_B
 #row -1
-addiu $s0, $s0, -1
+# addiu $s0, $s0, -1
+b  rtm_over
 b trns_mv_over
 
 rtm_case_B:
 li $t0, 'B'
 bne $t0, $v0, rtm_case_slash
-
+b  rtm_over
 b trns_mv_over
 
 rtm_case_slash:
 li $t0, '/'
 bne $t0, $v0, rtm_err
 #col +1
-addiu $s1, $s1, 1
+# addiu $s1, $s1, 1
 b rtm_over
 rtm_err:
 li $v0, -1
 rtm_over:
 
+lw $ra, 0($sp)
+lw $s0, 4($sp)
+lw $s1, 8($sp)
+addiu $sp, $sp, 12
 
 
 jr $ra
@@ -422,7 +439,7 @@ jr $ra
 
 
 # Part VII
-monster_attacks:
+complete_attack:
 addiu $sp, $sp, -24
 sw $a0, 0($sp)
 sw $a1, 4($sp)
@@ -431,7 +448,7 @@ sw $a3, 12($sp)
 sw $ra, 16($sp)
 sw $s0, 20($sp)
 
-lb $s0, 2($a2) #player health
+lb $s0, 2($a1) #player health
 
 move $a1, $a2
 move $a2, $a3
@@ -477,7 +494,7 @@ jal set_cell
 #replace with "."
 
 mstr_over:
-lw $a2, 8($sp)
+lw $a2, 4($sp)
 sb $s0, 2($a2) #player health
 
 
@@ -485,39 +502,430 @@ player_check:
 #set and check players health
 bgtz $s0, player_check_over
 
-sw $a0, 0($sp)
-lb $a1, 0($a2) #row
-lb $a2, 1($a2) #col
+lw $t0, 4($sp)
+
+lw $a0, 0($sp)
+lb $a1, 0($t0)
+lb $a2, 1($t0)
 li $a3, 'X'
+jal set_cell
+
+
+#
+# sw $a0, 0($sp)
+#
+# lb $a1, 0($a2) #row
+# lb $a2, 1($a2) #col
+# li $a3, 'X'
 
 player_check_over:
 
 lw $ra, 16($sp)
 lw $s0, 20($sp)
-addiu $sp, $sp, -24
+addiu $sp, $sp, 24
 
 
 jr $ra
 
 
 # Part VIII
-player_move:
-li $v0, -200
-li $v1, -200
+monster_attacks:
+addiu $sp, $sp, -20
+sw $a0, 0($sp)
+sw $ra, 4($sp)
+sw $s0, 8($sp)
+sw $s1, 12($sp)
+sw $s2, 16($sp)
+
+lb $s0, 0($a1) #row
+lb $s1, 1($a1) #col
+
+
+li $s2, 0
+
+lw $a0, 0($sp)
+move $a1, $s0
+addi $a2 , $s1, -1
+jal get_cell
+move $a0, $v0
+jal get_dmg
+addu $s2, $s2, $v0
+
+lw $a0, 0($sp)
+move $a1, $s0
+addiu $a2 , $s1, 1
+jal get_cell
+move $a0, $v0
+jal get_dmg
+addu $s2, $s2, $v0
+
+lw $a0, 0($sp)
+move $a2, $s1
+addiu $a1 , $s0, -1
+jal get_cell
+move $a0, $v0
+jal get_dmg
+addu $s2, $s2, $v0
+
+lw $a0, 0($sp)
+move $a2, $s1
+addiu $a1 , $s0, 1
+jal get_cell
+move $a0, $v0
+jal get_dmg
+addu $s2, $s2, $v0
+
+move $v0, $s2
+
+lw $ra, 4($sp)
+lw $s0, 8($sp)
+lw $s1, 12($sp)
+lw $s2, 16($sp)
+addiu $sp, $sp, 20
+
+
 jr $ra
 
+get_dmg:
+dmg_case_B:
+li $t0, 'B'
+bne $a0, $t0, dmg_case_m
+li $v0, 2
+b dmg_case_over
+dmg_case_m:
+li $t0, 'm'
+bne $a0, $t0, dmg_case_other
+li $v0, 1
+b dmg_case_over
+dmg_case_other:
+li $v0, 0
+dmg_case_over:
+jr $ra
 
 # Part IX
-complete_attack:
-li $v0, -200
-li $v1, -200
+player_move:
+addiu $sp, $sp, -32
+sw $s0, 0($sp)
+sw $s1, 4($sp)
+sw $s2, 8($sp)
+sw $s3, 12($sp)
+sw $s4, 16($sp)
+sw $s5 20($sp)
+sw $s6, 24($sp)
+sw $ra, 28($sp)
+
+move $s0, $a0 #map
+move $s1, $a1 #player
+move $s2, $a2 #row
+move $s3, $a3 #col
+
+lb $s5, 0($s1)
+lb $s6, 1($s1)
+
+move $a0, $s0
+move $a1, $s1
+jal monster_attacks
+
+#subtract $v0 from the players health
+
+
+lb $t0, 2($s1) #health
+sub $t0, $t0, $v0
+sb $t0, 2($s1) #health
+
+#health <= 0
+bgtz $t0, health_check_over
+move $a0, $s0
+lb $a1, 0($s1)
+lb $a2, 1($s1)
+li $a3, 'X'
+jal set_cell
+
+li $v0, 0
+b player_move_over
+health_check_over:
+
+move $t0, $s1
+sb $s2, 0($t0)
+sb $s3, 1($t0)
+
+
+######
+move $a0, $s0
+lb $a1, 0($s1)
+lb $a2, 1($s1)
+jal get_cell
+move $a0, $v0
+######
+#'.'
+move_case_dt:
+######
+move $a0, $s0
+lb $a1, 0($s1)
+lb $a2, 1($s1)
+jal get_cell
+move $a0, $v0
+######
+
+
+
+li $t0, '.'
+bne $t0, $a0, move_case_dllr
+
+move $a0, $s0
+# lb $a1, 0($s1)
+# lb $a2, 1($s1)
+move $a1, $s5
+move $a2, $s6
+li $a3, '.'
+
+jal set_cell
+
+move $a0, $s0
+move $a1, $s2
+move $a2, $s3
+li $a3, '@'
+jal set_cell
+
+
+
+li $v0, 0
+b player_move_over
+
+#'$'
+move_case_dllr:
+######
+move $a0, $s0
+lb $a1, 0($s1)
+lb $a2, 1($s1)
+jal get_cell
+move $a0, $v0
+######
+
+
+
+li $t0, '$'
+bne $t0, $a0, move_case_str
+
+move $a0, $s0
+# lb $a1, 0($s1)
+# lb $a2, 1($s1)
+move $a1, $s5
+move $a2, $s6
+li $a3, '.'
+jal set_cell
+
+
+move $a0, $s0
+move $a1, $s2
+move $a2, $s3
+li $a3, '@'
+jal set_cell
+
+
+li $v0, 0
+b player_move_over
+
+#'*'
+move_case_str:
+######
+move $a0, $s0
+lb $a1, 0($s1)
+lb $a2, 1($s1)
+jal get_cell
+move $a0, $v0
+######
+
+
+li $t0, '*'
+bne $t0, $a0, move_case_door
+
+move $a0, $s0
+# lb $a1, 0($s1)
+# lb $a2, 1($s1)
+move $a1, $s5
+move $a2, $s6
+li $a3, '.'
+jal set_cell
+
+move $a0, $s0
+move $a1, $s2
+move $a2, $s3
+li $a3, '@'
+jal set_cell
+
+li $v0, 0
+b player_move_over
+#'>'
+move_case_door:
+######
+move $a0, $s0
+lb $a1, 0($s1)
+lb $a2, 1($s1)
+jal get_cell
+move $a0, $v0
+######
+
+
+li $t0, '>'
+bne $t0, $a0, player_move_over
+
+move $a0, $s0
+# lb $a1, 0($s1)
+# lb $a2, 1($s1)
+move $a1, $s5
+move $a2, $s6
+li $a3, '.'
+jal set_cell
+
+move $a0, $s0
+move $a1, $s2
+move $a2, $s3
+li $a3, '@'
+jal set_cell
+
+
+li $v0, -1
+player_move_over:
+
+lw $s0, 0($sp)
+lw $s1, 4($sp)
+lw $s2, 8($sp)
+lw $s3, 12($sp)
+lw $s4, 16($sp)
+lw $s5 20($sp)
+lw $s6, 24($sp)
+lw $ra, 28($sp)
+addiu $sp, $sp, 32
+
 jr $ra
 
 
 # Part X
 player_turn:
-li $v0, -200
-li $v1, -200
+
+addiu $sp, $sp, -24
+sw $s0, 0($sp)
+sw $s1, 4($sp)
+sw $s2, 8($sp)
+sw $s3, 12($sp)
+sw $s4, 16($sp)
+sw $ra, 20($sp)
+
+
+
+move $s0, $a0 #map
+move $s1, $a1 #player
+move $s2, $a2 #dir
+
+lb $t1, 0($s1)
+li $t2, 0 #temp
+li $t0, 'U'
+addiu $t2, $t1, -1
+beq $t0, $a2, dir_match_row
+li $t2, 0 #temp
+li $t0, 'D'
+addiu $t2, $t1, 1
+beq $t0, $a2, dir_match_row
+li $t2, 0 #temp
+
+lb $t1, 1($s1)
+
+li $t0, 'L'
+addiu $t2, $t1, -1
+beq $t0, $a2, dir_match_col
+li $t2, 0 #temp
+li $t0, 'R'
+addiu $t2, $t1, 1
+beq $t0, $a2, dir_match_col
+li $t2, 0 #temp
+li $v0, -1
+b player_turn_over
+
+dir_match_row:
+# sb $t2, 0($s1)
+#
+# move $a1, $t2
+# lb $a1, 1($s1)
+
+
+lb $a2, 1($s1)
+move $a1, $t2
+
+b dir_match_over
+dir_match_col:
+# sb $t2, 1($s1)
+#
+# lb $a1, 0($s1)
+# move $a2, $t2
+
+
+lb $a1, 0($s1)
+move $a2, $t2
+dir_match_over:
+
+
+move $s3, $a1
+move $s4, $a2
+check_valid:
+#$a0 is map
+#row
+#col
+jal is_valid_cell
+bltz $v0 ld_zero
+b get_attk_cell
+ld_zero:
+li $v0, 0
+b player_turn_over
+get_attk_cell:
+move $a0, $s0
+move $a1, $s3
+move $a2, $s4
+jal get_cell
+move $t0, $v0
+li $v0, 0
+li $t1, 0x23 # #
+beq $t0, $t1, player_turn_over
+#assuming valid attack target?
+
+move $a0, $s0
+move $a1, $s1
+move $a2, $s2
+jal get_attack_target
+bltz $v0, not_attkble
+
+is_attkble:
+###
+move $a0, $s0
+move $a1, $s1
+move $a2, $s3
+move $a3, $s4
+jal complete_attack
+li $v0, 0
+b player_turn_over
+
+not_attkble:
+#load args into player move
+move $a0, $s0
+move $a1, $s1
+move $a2, $s3
+move $a3, $s4
+jal player_move
+
+# jal player_turn
+b player_turn_over
+
+player_turn_over:
+
+lw $s0, 0($sp)
+lw $s1, 4($sp)
+lw $s2, 8($sp)
+lw $s3, 12($sp)
+lw $s4, 16($sp)
+lw $ra, 20($sp)
+addiu $sp, $sp, 24
+
+
 jr $ra
 
 

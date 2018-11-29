@@ -63,6 +63,8 @@ li $t9, 'B'
 beq $a0, $t9, print
 li $t9, '?'
 beq $a0, $t9, print
+li $t9, 'X'
+beq $a0, $t9, print
 b print_space
 print:
 syscall
@@ -73,7 +75,7 @@ syscall
 print_over:
 
 li $v0, 11
-syscall
+# syscall
 addiu $t4, $t4, 1
 b sub_loop_print_map
 sub_loop_print_map_over:
@@ -140,8 +142,116 @@ la $a1, map
 la $a2, player
 jal init_game
 
+
+#####################################GET TEST
+# la $a0, map
+# li $a1, 3
+# li $a2, 5
+# jal get_cell
+# move $a0, $v0
+# li $v0, 11
+# syscall
+# li $v0, 10
+# syscall
+
+#####################################SET TEST
+# jal print_map
+#
+# la $a0, map
+# li $a1, 0
+# li $a2, 1
+# li $a3, 'X'
+# jal set_cell
+#
+# la $a0, map
+# li $a1, 3
+# li $a2, 5
+# jal get_cell
+# move $a0, $v0
+# li $v0, 11
+# syscall
+# move $a0, $v0
+#
+#
+# jal print_map
+# li $v0, 10
+# syscall
+#################################### get_attack_target TEST
+# #set playe location to 1,9
+# la $t0, player
+# li $t1, 1
+# sb $t1, 0($t0)
+# li $t1, 9
+# sb $t1, 1($t0)
+# la $a0, map
+# la $a1, player
+# li $a2, 'U'
+# jal get_attack_target
+# move $a0, $v0
+# li $v0, 1
+# syscall
+#
+# la $t0, player
+# li $t1, 1
+# sb $t1, 0($t0)
+# li $t1, 9
+# sb $t1, 1($t0)
+# la $a0, map
+# la $a1, player
+# li $a2, 'D'
+# jal get_attack_target
+# move $a0, $v0
+# li $v0, 1
+# syscall
+#
+# la $t0, player
+# li $t1, 1
+# sb $t1, 0($t0)
+# li $t1, 9
+# sb $t1, 1($t0)
+# la $a0, map
+# la $a1, player
+# li $a2, 'L'
+# jal get_attack_target
+# move $a0, $v0
+# li $v0, 1
+# syscall
+#
+# la $t0, player
+# li $t1, 1
+# sb $t1, 0($t0)
+# li $t1, 9
+# sb $t1, 1($t0)
+# la $a0, map
+# la $a1, player
+# li $a2, 'R'
+# jal get_attack_target
+# move $a0, $v0
+# li $v0, 1
+# syscall
+#
+#
+# li $v0, 10
+# syscall
+##################################### Complete Attack Test
+#health bellow zeroe
+# li $t0, 1
+# la $t1, player
+# sb $t0, 2($t1)
+#
+# la $a0, map
+# la $a1, player
+# li $a2, 1
+# li $a3, 8
+# jal complete_attack
+#
+# jal print_map
+#
+# li $v0, 10
+# syscall
+
 # fill in arguments
-jal reveal_area
+#jal reveal_area
 
 li $s0, 0  # move = 0
 
@@ -168,7 +278,38 @@ syscall
 # handle input: w, a, s or d
 # map w, a, s, d  to  U, L, D, R and call player_turn()
 
+li $t0, 'w' #u
+li $t1, 'U'
+beq $t0, $s1, dir_select
+li $t0, 's' #d
+li $t1, 'D'
+beq $t0, $s1, dir_select
+li $t0, 'a' #l
+li $t1, 'L'
+beq $t0, $s1, dir_select
+li $t0, 'd' #r
+li $t1, 'R'
+beq $t0, $s1, dir_select
+li $t1, 0
+dir_select:
+la $a0, map
+la $a1, player
+move $a2, $t1
+
+
+
+
+
+jal player_turn
+
 # if move == 0, call reveal_area()  Otherwise, exit the loop.
+bnez $v0, skip_reveal
+la $a0, map
+la $t0, player
+lb $a1, 0($t0)
+lb $a2, 1($t0)
+#jal reveal_area
+skip_reveal:
 
 j game_loop
 li $v0, 10
