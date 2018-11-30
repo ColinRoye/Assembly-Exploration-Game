@@ -1,5 +1,5 @@
 .data
-map_filename: .asciiz "map3.txt"
+map_filename: .asciiz "map1.txt"
 # num words for map: 45 = (num_rows * num_cols + 2) // 4
 # map is random garbage initially
 .asciiz "Don't touch this region of memory"
@@ -141,7 +141,12 @@ la $a0, map_filename
 la $a1, map
 la $a2, player
 jal init_game
+la $t0, player
 
+la $a0, map
+lb $a1, 0($t0)
+lb $a2, 1($t0)
+jal reveal_area
 
 #####################################GET TEST
 # la $a0, map
@@ -257,8 +262,9 @@ li $s0, 0  # move = 0
 
 game_loop:  # while player is not dead and move == 0:
 
-jal print_map # takes no args
 
+jal print_map # takes no args
+### print_map_debug
 jal print_player_info # takes no args
 
 # print prompt
@@ -289,7 +295,7 @@ li $t1, 'L'
 beq $t0, $s1, dir_select
 li $t0, 'd' #r
 li $t1, 'R'
-beq $t0, $s1, dir_select
+beq $t0, $s1, flood_fill_reveal_select
 li $t1, 0
 dir_select:
 la $a0, map
@@ -303,13 +309,17 @@ move $a2, $t1
 jal player_turn
 
 # if move == 0, call reveal_area()  Otherwise, exit the loop.
-bnez $v0, skip_reveal
+#bnez $v0, skip_reveal
 la $a0, map
 la $t0, player
 lb $a1, 0($t0)
 lb $a2, 1($t0)
-#jal reveal_area
+jal reveal_area
 skip_reveal:
+
+
+jal flood_fill_reveal_select
+
 
 j game_loop
 li $v0, 10
@@ -344,5 +354,79 @@ syscall
 exit:
 li $v0, 10
 syscall
+
+
+print_map_debug:
+li $a0, '\n'
+li $v0, 11
+syscall
+la $t0, map  # the function does not need to take arguments
+lbu $t1, 0($t0)
+lbu $t2, 1($t0)
+addiu $t0, $t0, 2
+li $t3, 0
+loop_print_map_debug:
+beq $t3, $t1, loop_print_map_over_debug
+li $t4, 0
+sub_loop_print_map_debug:
+beq $t4, $t2, sub_loop_print_map_over_debug
+mul $a0, $t3, $t2
+addu $a0, $a0, $t4
+addu $a0, $a0, $t0
+lbu $a0, 0($a0)
+li $v0, 11
+
+andi $a0, $a0, 0x7F
+
+li $t9, 0x23
+beq $a0, $t9, print_debug
+li $t9, '@'
+beq $a0, $t9, print_debug
+li $t9, '.'
+beq $a0, $t9, print_debug
+li $t9, '/'
+beq $a0, $t9, print_debug
+li $t9, '>'
+beq $a0, $t9, print_debug
+li $t9, '$'
+beq $a0, $t9, print_debug
+li $t9, '*'
+beq $a0, $t9, print_debug
+li $t9, 'm'
+beq $a0, $t9, print_debug
+li $t9, 'B'
+beq $a0, $t9, print_debug
+li $t9, '?'
+beq $a0, $t9, print_debug
+li $t9, 'X'
+beq $a0, $t9, print_debug
+b print_space_debug
+print_debug:
+syscall
+b print_over_debug
+print_space_debug:
+li $a0, ' '
+syscall
+print_over_debug:
+
+li $v0, 11
+# syscall
+addiu $t4, $t4, 1
+b sub_loop_print_map_debug
+sub_loop_print_map_over_debug:
+addiu $t3, $t3, 1
+li $a0, '\n'
+li $v0, 11
+syscall
+# #li $a0, '\n'
+# li $v0, 11
+# syscall
+b loop_print_map_debug
+loop_print_map_over_debug:
+
+
+jr $ra
+
+
 
 .include "hw4.asm"

@@ -99,7 +99,7 @@ beqz $t0, loop_init_map_over
 beq $t1, $t2, loop_init_map #read in new char
 
 move $t5, $t1
-#xori $t5, $t5, 0x80
+xori $t5, $t5, 0x80
 sb $t5, 0($t3)
 
 
@@ -144,6 +144,7 @@ li $a2, 2
 
 li $v0, 14
 syscall
+
 bltz $v0, init_err
 lb $t0, 0($s1)
 lb $t1, 1($s1)
@@ -151,6 +152,16 @@ addiu $t0, $t0, -0x30
 li $t2, 10
 mul $t0, $t0, $t2
 addu $t0, $t0, $t1
+addiu $t0, $t0, -0x30
+
+
+
+
+# addiu $v0, $v0, -0x30
+#
+# bltz $v0, init_err
+# add $t0, $t0, $v0
+
 
 
 
@@ -284,66 +295,80 @@ jr $ra
 # Part V
 reveal_area:
 ##########save s reg
-addiu $sp, $sp, -12
+addiu $sp, $sp, -28
 sw $s0, 0($sp)
 sw $s1, 4($sp)
-sw $s7, 8($sp)
+sw $s2, 8($sp)
+sw $s3, 12($sp)
+sw $s4, 16($sp)
+sw $s5, 20($sp)
+sw $ra, 24($sp)
+
+move $s0, $a0
+move $s1, $a1
+move $s2, $a2
+
+addiu $s1 , $s1, -1
+addiu $s2 , $s2, -1
 
 
-addiu $a1, $a1, -1
-addiu $a2, $a2, -1
-
-li $s7, 3
-li $s1, 0
-rva_loop:
-beq $s1, $s7, rva_loop_over
-li $s0, 0
-rva_sub_loop:
-beq $s0, $s7, rva_sub_loop_over
-addiu $sp, $sp, -16
-sw $a0, 0($sp)
-sw $a1, 4($sp)
-sw $a2, 8($sp)
-sw $ra, 12($sp)
-#is valid
-
-addu $a1, $a1, $s0
-addu $a2, $a2, $s1
+li $s5, 3
+li $s3, 0
+loop_rva:
+li $s4, 0
+bge $s3, $s5, loop_rva_over
+sub_loop_rva:
+bge $s4, $s5, sub_loop_rva_over
+move $a0, $s0
+move $a1, $s1
+move $a2, $s2
+add $a1, $a1, $s3
+add $a2, $a2, $s4
 
 jal is_valid_cell
-bltz $v0, skip_set
-#get cell
-lw $a0, 0($sp)
-lw $a1, 4($sp)
-lw $a2, 8($sp)
+bltz $v0, sub_loop_rva_continue
+
+move $a0, $s0
+move $a1, $s1
+move $a2, $s2
+add $a1, $a1, $s3
+add $a2, $a2, $s4
+
+
+
+
 jal get_cell
-#and
-sll $t0, $v0, 3
-beqz $t0, skip_set #already revealed
+srl $t0, $v0, 7
+beqz $t0, sub_loop_rva_continue #already revealed
 
+
+
+
+move $a0, $s0
+move $a1, $s1
+move $a2, $s2
+add $a1, $a1, $s3
+add $a2, $a2, $s4
 xori $a3, $v0 0x80
-#set cell
 jal set_cell
+sub_loop_rva_continue:
+addiu $s4, $s4, 1
+b sub_loop_rva
+sub_loop_rva_over:
+addiu $s3, $s3, 1
+b loop_rva
+loop_rva_over:
 
 
-skip_set:
-lw $ra, 12($sp)
-lw $a0, 0($sp)
-lw $a1, 4($sp)
-lw $a2, 8($sp)
-addiu $sp, $sp, 16
-addiu $s0, $s0, 1
-b rva_sub_loop
-rva_sub_loop_over:
-addiu $s1, $s1, 1
-rva_loop_over:
+lw $s0, 0($sp)
+lw $s1, 4($sp)
+lw $s2, 8($sp)
+lw $s3, 12($sp)
+lw $s4, 16($sp)
+lw $s5, 20($sp)
+lw $ra, 24($sp)
+addiu $sp, $sp, -28
 
-sw $s0, 0($sp)
-sw $s1, 4($sp)
-sw $s7, 8($sp)
-addiu $sp, $sp, 12
-
-#######save s reg
 jr $ra
 
 # Part VI
@@ -602,17 +627,35 @@ li $v0, 0
 dmg_case_over:
 jr $ra
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Part IX
 player_move:
-addiu $sp, $sp, -32
+addiu $sp, $sp, -36
 sw $s0, 0($sp)
 sw $s1, 4($sp)
 sw $s2, 8($sp)
 sw $s3, 12($sp)
 sw $s4, 16($sp)
-sw $s5 20($sp)
+sw $s5, 20($sp)
 sw $s6, 24($sp)
-sw $ra, 28($sp)
+sw $s7, 28($sp)
+sw $ra, 32($sp)
 
 move $s0, $a0 #map
 move $s1, $a1 #player
@@ -649,7 +692,6 @@ move $t0, $s1
 sb $s2, 0($t0)
 sb $s3, 1($t0)
 
-
 ######
 move $a0, $s0
 lb $a1, 0($s1)
@@ -657,24 +699,16 @@ lb $a2, 1($s1)
 jal get_cell
 move $a0, $v0
 ######
-#'.'
+
+move $s7, $a0
+
+
 move_case_dt:
-######
-move $a0, $s0
-lb $a1, 0($s1)
-lb $a2, 1($s1)
-jal get_cell
-move $a0, $v0
-######
-
-
-
+move $a0, $s7 #SAVE S7 for the love of god
 li $t0, '.'
 bne $t0, $a0, move_case_dllr
 
 move $a0, $s0
-# lb $a1, 0($s1)
-# lb $a2, 1($s1)
 move $a1, $s5
 move $a2, $s6
 li $a3, '.'
@@ -686,35 +720,26 @@ move $a1, $s2
 move $a2, $s3
 li $a3, '@'
 jal set_cell
-
-
 
 li $v0, 0
 b player_move_over
 
 #'$'
 move_case_dllr:
-######
-move $a0, $s0
-lb $a1, 0($s1)
-lb $a2, 1($s1)
-jal get_cell
-move $a0, $v0
-######
-
-
-
+move $a0, $s7 #SAVE S7 for the love of god
 li $t0, '$'
 bne $t0, $a0, move_case_str
 
+lb $t5, 3($s1)
+addiu $t5, $t5, 1
+sb $t5, 3($s1)
+
+
 move $a0, $s0
-# lb $a1, 0($s1)
-# lb $a2, 1($s1)
 move $a1, $s5
 move $a2, $s6
 li $a3, '.'
 jal set_cell
-
 
 move $a0, $s0
 move $a1, $s2
@@ -722,27 +747,20 @@ move $a2, $s3
 li $a3, '@'
 jal set_cell
 
-
 li $v0, 0
 b player_move_over
 
 #'*'
 move_case_str:
-######
-move $a0, $s0
-lb $a1, 0($s1)
-lb $a2, 1($s1)
-jal get_cell
-move $a0, $v0
-######
-
-
+move $a0, $s7 #SAVE S7 for the love of god
 li $t0, '*'
 bne $t0, $a0, move_case_door
 
+lb $t5, 3($s1)
+addiu $t5, $t5, 5
+sb $t5, 3($s1)
+
 move $a0, $s0
-# lb $a1, 0($s1)
-# lb $a2, 1($s1)
 move $a1, $s5
 move $a2, $s6
 li $a3, '.'
@@ -758,21 +776,11 @@ li $v0, 0
 b player_move_over
 #'>'
 move_case_door:
-######
-move $a0, $s0
-lb $a1, 0($s1)
-lb $a2, 1($s1)
-jal get_cell
-move $a0, $v0
-######
-
-
+move $a0, $s7 #SAVE S7 for the love of god
 li $t0, '>'
 bne $t0, $a0, player_move_over
 
 move $a0, $s0
-# lb $a1, 0($s1)
-# lb $a2, 1($s1)
 move $a1, $s5
 move $a2, $s6
 li $a3, '.'
@@ -784,7 +792,6 @@ move $a2, $s3
 li $a3, '@'
 jal set_cell
 
-
 li $v0, -1
 player_move_over:
 
@@ -793,12 +800,43 @@ lw $s1, 4($sp)
 lw $s2, 8($sp)
 lw $s3, 12($sp)
 lw $s4, 16($sp)
-lw $s5 20($sp)
+lw $s5, 20($sp)
 lw $s6, 24($sp)
-lw $ra, 28($sp)
-addiu $sp, $sp, 32
+lw $s7, 28($sp)
+lw $ra, 32($sp)
+addiu $sp, $sp, 36
+
 
 jr $ra
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Part X
@@ -931,8 +969,200 @@ jr $ra
 
 # Part XI
 flood_fill_reveal:
-li $v0, -200
-li $v1, -200
+addiu $sp, $sp -36
+sw $s0, 0($sp)
+sw $s1, 4($sp)
+sw $s2, 8($sp)
+sw $s3, 12($sp)
+sw $s4, 16($sp)
+sw $s5, 20($sp)
+sw $s6, 24($sp)
+sw $s7, 28($sp)
+sw $ra, 32($sp)
+
+move $s0, $a0
+move $s1, $a1
+move $s2, $a2
+move $s3, $a3
+
+move $fp, $sp
+
+#push row and col onto the stack
+addiu $sp, $sp, -8
+sw $s1, 0($sp)
+sw $s2, 4($sp)
+
+#allocate space for offsets
+li $a0, 8
+li $v0, 9
+syscall
+
+
+move $s4, $v0
+
+
+#offsets
+li $t0, -1
+sb $t0, 0($s4)
+li $t0, 0
+sb $t0, 1($s4)
+
+li $t0, 1
+sb $t0, 2($s4)
+li $t0, 0
+sb $t0, 3($s4)
+
+li $t0, 0
+sb $t0, 4($s4)
+li $t0, -1
+sb $t0, 5($s4)
+
+li $t0, 0
+sb $t0, 6($s4)
+li $t0, 1
+sb $t0, 7($s4)
+
+
+flood_loop:
+beq $sp, $fp, flood_over
+
+#pop row and col
+lb $s5, 0($sp)
+lb $s6, 4($sp)
+addiu $sp, $sp, 8
+#make cells at index i,j visible
+
+move $a0, $s0
+move $a1, $s5
+move $a2, $s6
+
+#get cell
+jal get_cell
+
+move $a0, $s0
+move $a1, $s5
+move $a2, $s6
+andi $a3, $v0, 0x7F
+jal set_cell
+#make visible
+#set cell
+li $s7, 4
+li $s2, 0
+
+###fl?
+move $s1, $s4 #move heap to disposable
+#for every pair
+sub_loop_fld:
+bge $s7, $s2, sub_loop_fld_over
+move $a0, $s0
+
+lb $t2, 0($s1) #offset i
+lb $t3, 1($s1) #offser j
+
+
+#if is floor
+lb $t2, 0($s1) #offset i
+lb $t3, 1($s1) #offser j
+move $a0, $s0
+add $a1, $s5, $t2
+add $a2, $s6, $t3
+jal get_cell
+
+li $t2, '.'
+bne $v0, $t2, continue_fld_sub
+#\if is floor
+
+
+#if the cells have not been visited yet
+lb $t2, 0($s1) #offset i
+lb $t3, 1($s1) #offser j
+move $a0, $s3
+add $a1, $s5, $t2
+add $a2, $s6, $t3
+move $a3, $s0
+jal is_visited
+
+li $t2, 0
+bne $v0, $t2, continue_fld_sub
+#\if the cells have not been visited yet
+
+
+#set cell to visited
+lb $t2, 0($s1) #offset i
+lb $t3, 1($s1) #offser j
+move $a0, $s3
+add $a1, $s5, $t2
+add $a2, $s6, $t3
+move $a3, $s0
+jal set_visited
+#\set cell to visited
+
+
+#push row + i
+lb $t3, 1($s1) #offser j
+add $a1, $s5, $t2
+
+addiu $sp, $sp, -4
+sw $a1, 0($sp)
+#\push row + i
+
+#push col + j
+lb $t3, 1($s1) #offser j
+add $a1, $s6, $t3
+
+addiu $sp, $sp, -4
+sw $a1, 0($sp)
+#\push col + j
+continue_fld_sub:
+addiu $s1, $s1, 2
+addiu $t1, $t1, 1
+b sub_loop_fld
+sub_loop_fld_over:
+
+b flood_loop
+flood_loop_over:
+li $v0, 0
+b flood_over
+flood_err:
+li $v0, -1
+flood_over:
+
+lw $s0, 0($sp)
+lw $s1, 4($sp)
+lw $s2, 8($sp)
+lw $s3, 12($sp)
+lw $s4, 16($sp)
+lw $s5, 20($sp)
+lw $s6, 24($sp)
+lw $s7, 28($sp)
+lw $ra, 32($sp)
+addiu $sp, $sp 36
+
+
+
+jr $ra
+
+
+
+is_visited:
+
+lb $t2, 1($a3)
+mul $t2, $t2, $a1 #row ind times num num_cols
+addu $t2, $t2, $a2
+addu $t2, $t2, $a0
+lb $v0, 0($t2)
+
+jr $ra
+
+set_visited:
+lb $t2, 1($a3)
+mul $t2, $t2, $a1 #row ind times num num_cols
+addu $t2, $t2, $a2
+addu $t2, $t2, $a0
+
+li $v0, 1
+sb $v0, 0($t2)
+
 jr $ra
 
 #####################################################################
