@@ -208,7 +208,6 @@ b is_valid_over
 not_valid:
 li $v0, -1
 is_valid_over:
-
 jr $ra
 
 
@@ -410,7 +409,7 @@ b trns_mv_over
 
 trns_case_R:
 li $t0, 'R'
-bne $t0, $a2, trns_mv_over
+bne $t0, $a2, rtm_err
 #col +1
 addiu $s1, $s1, 1
 trns_mv_over:
@@ -425,7 +424,6 @@ sw $ra, 4($sp)
 move $a1, $s0
 move $a2, $s1
 jal get_cell
-
 lw $ra, 4($sp)
 addiu $sp, $sp, 4
 
@@ -434,20 +432,22 @@ li $t0, 'm'
 bne $t0, $v0, rtm_case_B
 #row -1
 # addiu $s0, $s0, -1
+li $v0, 0
 b  rtm_over
-b trns_mv_over
 
 rtm_case_B:
 li $t0, 'B'
 bne $t0, $v0, rtm_case_slash
+
+li $v0, 0
 b  rtm_over
-b trns_mv_over
 
 rtm_case_slash:
 li $t0, '/'
 bne $t0, $v0, rtm_err
 #col +1
 # addiu $s1, $s1, 1
+li $v0, 0
 b rtm_over
 rtm_err:
 li $v0, -1
@@ -985,6 +985,14 @@ move $s1, $a1
 move $s2, $a2
 move $s3, $a3
 
+jal is_valid_cell
+bnez $v0, flood_err
+
+move $a0, $s0
+move $a1, $s1
+move $a2, $s2
+move $a3, $s3
+
 move $fp, $sp
 
 #push row and col onto the stack
@@ -1047,7 +1055,6 @@ move $a1, $s5
 move $a2, $s6
 andi $a3, $v0, 0x7F
 jal set_cell
-jal print_map
 
 
 #make visible
@@ -1113,7 +1120,7 @@ not_today_fucker:
 lb $t3, 0($s1) #offser i
 add $a1, $s5, $t3
 
-addiu $sp, $sp, -4
+addiu $sp, $sp, -8
 sw $a1, 0($sp)
 #\push row + i
 
@@ -1121,8 +1128,8 @@ sw $a1, 0($sp)
 lb $t3, 1($s1) #offser j
 add $a1, $s6, $t3
 
-addiu $sp, $sp, -4
-sw $a1, 0($sp)
+# addiu $sp, $sp, -4
+sw $a1, 4($sp)
 #\push col + j
 
 

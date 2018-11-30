@@ -146,7 +146,7 @@ la $t0, player
 la $a0, map
 lb $a1, 0($t0)
 lb $a2, 1($t0)
-#jal reveal_area
+jal reveal_area
 
 #####################################GET TEST
 # la $a0, map
@@ -295,8 +295,10 @@ li $t1, 'L'
 beq $t0, $s1, dir_select
 li $t0, 'd' #r
 li $t1, 'R'
-beq $t0, $s1, flood_fill_reveal_select
+beq $t0, $s1, dir_select
 li $t1, 0
+li $t0, 'r'
+beq $t0, $s1, flood_fill_reveal_select
 dir_select:
 la $a0, map
 la $a1, player
@@ -314,7 +316,7 @@ la $a0, map
 la $t0, player
 lb $a1, 0($t0)
 lb $a2, 1($t0)
-#jal reveal_area
+jal reveal_area
 skip_reveal:
 j game_loop
 flood_fill_reveal_select:
