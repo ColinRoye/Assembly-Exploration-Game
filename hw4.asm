@@ -1039,11 +1039,17 @@ move $a2, $s6
 #get cell
 jal get_cell
 
+
+
+
 move $a0, $s0
 move $a1, $s5
 move $a2, $s6
 andi $a3, $v0, 0x7F
 jal set_cell
+jal print_map
+
+
 #make visible
 #set cell
 li $s7, 4
@@ -1053,11 +1059,7 @@ li $s2, 0
 move $s1, $s4 #move heap to disposable
 #for every pair
 sub_loop_fld:
-bge $s7, $s2, sub_loop_fld_over
-move $a0, $s0
-
-lb $t2, 0($s1) #offset i
-lb $t3, 1($s1) #offser j
+bge $s2, $s7, sub_loop_fld_over
 
 
 #if is floor
@@ -1067,6 +1069,10 @@ move $a0, $s0
 add $a1, $s5, $t2
 add $a2, $s6, $t3
 jal get_cell
+
+
+andi $v0, $v0, 0x7F
+
 
 li $t2, '.'
 bne $v0, $t2, continue_fld_sub
@@ -1097,10 +1103,15 @@ move $a3, $s0
 jal set_visited
 #\set cell to visited
 
+li $t9, 'B'
+
+bne $v0, $t9, not_today_fucker
+jal hell
+not_today_fucker:
 
 #push row + i
-lb $t3, 1($s1) #offser j
-add $a1, $s5, $t2
+lb $t3, 0($s1) #offser i
+add $a1, $s5, $t3
 
 addiu $sp, $sp, -4
 sw $a1, 0($sp)
@@ -1113,11 +1124,14 @@ add $a1, $s6, $t3
 addiu $sp, $sp, -4
 sw $a1, 0($sp)
 #\push col + j
+
+
 continue_fld_sub:
 addiu $s1, $s1, 2
-addiu $t1, $t1, 1
+addiu $s2, $s2, 1
 b sub_loop_fld
 sub_loop_fld_over:
+
 
 b flood_loop
 flood_loop_over:
@@ -1142,7 +1156,8 @@ addiu $sp, $sp 36
 
 jr $ra
 
-
+hell:
+jr $ra
 
 is_visited:
 

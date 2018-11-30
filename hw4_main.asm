@@ -1,5 +1,5 @@
 .data
-map_filename: .asciiz "map1.txt"
+map_filename: .asciiz "map2.txt"
 # num words for map: 45 = (num_rows * num_cols + 2) // 4
 # map is random garbage initially
 .asciiz "Don't touch this region of memory"
@@ -146,7 +146,7 @@ la $t0, player
 la $a0, map
 lb $a1, 0($t0)
 lb $a2, 1($t0)
-jal reveal_area
+#jal reveal_area
 
 #####################################GET TEST
 # la $a0, map
@@ -314,11 +314,22 @@ la $a0, map
 la $t0, player
 lb $a1, 0($t0)
 lb $a2, 1($t0)
-jal reveal_area
+#jal reveal_area
 skip_reveal:
+j game_loop
+flood_fill_reveal_select:
 
 
-jal flood_fill_reveal_select
+li $a0, 10000
+li $v0, 9
+syscall
+move $a3, $v0
+
+la $a0, map
+la $t0, player
+lb $a1, 0($t0)
+lb $a2, 1($t0)
+jal flood_fill_reveal
 
 
 j game_loop
